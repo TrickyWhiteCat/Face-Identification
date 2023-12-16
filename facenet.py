@@ -1,7 +1,7 @@
 import logging
 logging.basicConfig(level=logging.WARNING)
 
-from utils.split_folder import split_folder
+from utils.split_data import split_folder
 
 import os
 from facenet.trainer import train
@@ -12,22 +12,22 @@ from matplotlib import pyplot as plt
 
 
 
-SAVE_DIR = 'checkpoints'
-DATA_DIR = r'data\lfw-deepfunneled'
-SPLIT_DATA_DIR = r'data\lfw-deepfunneled-split'
+SAVE_DIR = r'checkpoints\facenet'
+DATA_DIR = r"data\lfw-deepfunneled"
+SPLIT_DATA_DIR = f'{DATA_DIR}-split'
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 embedding_size = 128
 
-epochs = [10, 0, 0]
-distance_metric = 'euclidean'
+epochs = [5, 30, 50]
 n_classes = 16
 n_samples = 4
-margin = 1
+batch_size = n_classes * n_samples
+margin = 0.35
 device = 'cuda'
 
-learning_rate = (5*10**-3, 10**-4)
-finetune_learning_rate = (10**-3, 10**-5)
+learning_rate = (10**-2, 10**-3)
+finetune_learning_rate = (10**-3, 10**-4)
 
 model = models.mobilenet_v3_small(weights = models.MobileNet_V3_Small_Weights.DEFAULT)
 model.requires_grad_(False)
@@ -37,47 +37,45 @@ augment = transforms.Compose([transforms.ToTensor(),
                               transforms.RandomHorizontalFlip(p=0.2),])
 model_transform = models.MobileNet_V3_Small_Weights.DEFAULT.transforms(antialias = True)
 transform = transforms.Compose([augment, model_transform])
-train_dir, valid_dir = split_folder(DATA_DIR, SPLIT_DATA_DIR, ratio=0.8)
+train_dir, valid_dir = split_folder(DATA_DIR, SPLIT_DATA_DIR, ratio=0.8, reuse=True)
 train_dataset = datasets.ImageFolder(train_dir, transform=transform)
-valid_dataset = datasets.ImageFolder(valid_dir, transform=transform)
+valid_dataset = datasets.ImageFolder(valid_dir, transform=model_transform)
 r1 = train(model = model,
            train_dataset = train_dataset,
-           distance_metric = distance_metric,
            device=device,
            margin=margin,
            learning_rate=learning_rate[0],
            semihard_negative=True,
-           save_file=os.path.join(SAVE_DIR, f'{model.__class__.__name__}_{learning_rate}_{distance_metric}.pth',),
+           save_file=os.path.join(SAVE_DIR, f'{model.__class__.__name__}_{learning_rate}.pth',),
            epochs = epochs[0],
-           n_classes=n_classes,
+           batch_size = batch_size,
            n_samples = n_samples,
            validation_dataset = valid_dataset,
            end_learning_rate=learning_rate[1],)
 model.requires_grad_(True)
 r2 = train(model = model,
            train_dataset = train_dataset,
-           distance_metric = distance_metric,
            device=device,
            margin=margin,
            learning_rate=finetune_learning_rate[0],
            semihard_negative=True,
-           save_file=os.path.join(SAVE_DIR, f'finetune_{model.__class__.__name__}_{finetune_learning_rate}_{distance_metric}.pth',),
+           save_file=os.path.join(SAVE_DIR, f'finetune_{model.__class__.__name__}_{finetune_learning_rate}.pth',),
            epochs = epochs[1],
-           n_classes=n_classes,
+           save_epochs=True,
+           batch_size = batch_size,
            n_samples = n_samples,
            validation_dataset = valid_dataset,
            end_learning_rate=finetune_learning_rate[1],)
 # Fine-tune the model
 r3 = train(model = model,
            train_dataset = train_dataset,
-           distance_metric = distance_metric,
            device=device,
            margin=margin,
            learning_rate=finetune_learning_rate[0],
            semihard_negative=False,
-           save_file=os.path.join(SAVE_DIR, f'hard_{model.__class__.__name__}_{finetune_learning_rate}_{distance_metric}.pth',),
+           save_file=os.path.join(SAVE_DIR, f'hard_{model.__class__.__name__}_{finetune_learning_rate}.pth',),
            epochs = epochs[2],
-           n_classes=n_classes,
+           batch_size = batch_size,
            n_samples = n_samples,
            validation_dataset = valid_dataset,
            end_learning_rate=finetune_learning_rate[1],)
