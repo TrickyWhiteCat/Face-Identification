@@ -12,13 +12,12 @@ from arcface.head import ArcFaceEmbeddingHead
 
 SAVE_DIR = r'checkpoints\arcface'
 DATA_DIR = r"C:\Users\nmttu\Downloads\ms1m-retinaface-subset-1000"
-SPLIT_DATA_DIR = f'{DATA_DIR}-split'
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 embedding_size = 512
 
-epochs = [50, 100]
-scale = 64
+epochs = [2, 100]
+scale = 32
 batch_size = 64
 margin = 0.5
 device = 'cuda'
@@ -35,10 +34,11 @@ model_transform = transforms.Compose([transforms.Resize([224, 224], antialias=Tr
                                       transforms.Normalize(mean = [0, 0, 0], std=[0.2, 0.2, 0.2])])
 train_transform = transforms.Compose([transforms.ToTensor(), model_transform])
 dataset = datasets.ImageFolder(DATA_DIR)
-train_subset, valid_subset = torch.utils.data.random_split(dataset, [0.8, 0.2])
+train_subset, valid_subset = torch.utils.data.random_split(dataset, [0.9, 0.1])
 train_dataset = SubsetWithTransforms(train_subset, transform = train_transform)
 valid_dataset = SubsetWithTransforms(valid_subset, transform=transforms.Compose([transforms.ToTensor(), model_transform]))
-loss_fn = losses.ArcFaceLoss(num_classes=len(dataset.classes), embedding_size=embedding_size, margin=margin, scale=scale).to(device)
+
+classify_matrix = torch.nn.Parameter(torch.normal(0, 0.01, (len(dataset.classes), embedding_size), device=device))
 
 r1 = train(model = model,
            train_dataset = train_dataset,
@@ -52,7 +52,7 @@ r1 = train(model = model,
            scale = scale,
            validation_dataset = valid_dataset,
            end_learning_rate=learning_rate[1],
-           loss_fn=loss_fn,
+           classify_matrix=classify_matrix,
            save_epochs=True)
 model.requires_grad_(True)
 r2 = train(model = model,
@@ -67,7 +67,7 @@ r2 = train(model = model,
            scale = scale,
            validation_dataset = valid_dataset,
            end_learning_rate=finetune_learning_rate[1],
-           loss_fn=loss_fn,
+           classify_matrix=classify_matrix,
            save_epochs=True)
 record = r1[0] + r2[0]
 valid_record = r1[1] + r2[1]

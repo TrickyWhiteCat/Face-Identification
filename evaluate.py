@@ -26,7 +26,7 @@ far = 0.01
 # Model declaration and loading
 model = models.mobilenet_v3_small()
 model.classifier = ArcFaceEmbeddingHead(512, 576, last_batchnorm=True)
-model.load_state_dict(torch.load(r"checkpoints\arcface\finetune_MobileNetV3_epoch_30.pth"))
+model.load_state_dict(torch.load(r"C:\Users\nmttu\Downloads\finetune_MobileNetV3_epoch_76.pth")["model_state_dict"])
 model.eval().to(device)
 
 transform = transforms.Compose([transforms.ToTensor(),

@@ -1,4 +1,7 @@
 import logging
+import math
+
+from arcface.loss import ArcFace
 logging.basicConfig(level=logging.INFO)
 
 from typing import Callable
@@ -9,7 +12,7 @@ from torch.utils.data import DataLoader
 from torchvision import datasets
 from pytorch_metric_learning import losses
 
-def train(model:nn.Module, embedding_size, train_dataset: datasets.ImageFolder, learning_rate: float = 0.01, batch_size: int = 1, epochs: int = 10, margin = 0.5, scale = 64, save_file:str = None, save_epochs = False, verbose = True, device: str = 'cpu', validation_dataset: datasets.ImageFolder = None, end_learning_rate = None, loss_fn = None, **dataloader_kwargs):
+def train(model:nn.Module, embedding_size, train_dataset: datasets.ImageFolder, learning_rate: float = 0.01, batch_size: int = 1, epochs: int = 10, margin = 0.5, scale = 64, save_file:str = None, save_epochs = False, verbose = True, device: str = 'cpu', validation_dataset: datasets.ImageFolder = None, end_learning_rate = None, classify_matrix = None, **dataloader_kwargs):
     '''
     Train the model with the given hyperparameters. When being called with `model(x)`, the model must return the embeddings of the input `x`.
     The model will be trained with the FaceNet procedure, which means that the model will be trained with triplet loss and the data loader will be created with `BalancedBatchSampler`.
@@ -40,17 +43,20 @@ def train(model:nn.Module, embedding_size, train_dataset: datasets.ImageFolder, 
     logger = logging.getLogger("ArcFaceTrainer")
     model.to(device)
     model.train()
+
+    if classify_matrix is None:
+        classify_matrix = torch.nn.Parameter(torch.FloatTensor(len(train_dataset.classes), embedding_size))
+        torch.nn.init.xavier_uniform_(classify_matrix)
+    penalty = ArcFace(s=scale, margin=margin,)
+    loss_fn = nn.CrossEntropyLoss()
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, **dataloader_kwargs)
-    optimizer = optim.SGD(model.parameters(), lr=learning_rate)
-    gamma = (end_learning_rate / learning_rate) ** (1 / epochs)
-    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=gamma)
+
+    optimizer = optim.SGD([{'params': model.parameters()}, {'params': classify_matrix}], lr=learning_rate)
+    # Set step size so that the learning rate will be reduced to end_learning_rate at the last epoch.
+    gamma = 0.5
+    step_size =  math.log(end_learning_rate / learning_rate, gamma)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size = step_size, gamma=gamma)
     logger.info(f"Learning rate scheduler is created with the gamma {gamma}. Expected end learning rate is {end_learning_rate}.")
-    if loss_fn is None:
-        loss_fn = losses.ArcFaceLoss(num_classes=len(train_dataset.classes), embedding_size=embedding_size, margin=margin, scale=scale).to(device)
-        logger.info(f"Loss function is created with num_classes={len(train_dataset.classes)}, {embedding_size=}, {margin=}, {scale=}.")
-    loss_optimizer = optim.SGD(loss_fn.parameters(), lr=learning_rate) # The loss function involves a trainable tensor
-    loss_scheduler = optim.lr_scheduler.ExponentialLR(loss_optimizer, gamma=gamma)
-    logger.info(f"Reusing loss function")
 
     record_loss = []
     record = 0
@@ -60,17 +66,17 @@ def train(model:nn.Module, embedding_size, train_dataset: datasets.ImageFolder, 
             x = x.to(device)
             y = y.to(device)
             optimizer.zero_grad()
-            loss_optimizer.zero_grad()
-            embeddings = model(x)
-            loss = loss_fn(embeddings, y)
+            embeddings = model(x) # Normalized
+            logits = nn.functional.linear(nn.functional.normalize(embeddings), nn.functional.normalize(classify_matrix))
+            penalized = penalty(logits, y)
+            loss = loss_fn(penalized, y)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 5) # Reuse the same value as in the original implementation
             optimizer.step()
-            loss_optimizer.step()
             if verbose:
                 record += loss.item()
                 print(f"Epoch {epoch + 1}/{epochs} -- batch {idx + 1}/{len(train_dataloader)} -- loss: {loss.item():.4f}", end  = '\r')
         scheduler.step()
-        loss_scheduler.step()
         if save_file is not None:
             if save_epochs:
                 torch.save(model.state_dict(), save_file[:-4] + f"_epoch_{epoch + 1}.pth")
@@ -89,7 +95,10 @@ def train(model:nn.Module, embedding_size, train_dataset: datasets.ImageFolder, 
                 x = x.to(device)
                 y = y.to(device)
                 embeddings = model(x)
-                val_loss += loss_fn(embeddings, y).item()
+                logits = nn.functional.linear(nn.functional.normalize(embeddings), nn.functional.normalize(classify_matrix))
+                penalized = penalty(logits, y)
+                loss = loss_fn(penalized, y)
+                val_loss += loss.item()
             val_loss /= len(valid_dataloader)
         record_valid_loss.append(val_loss)
         model.train()
