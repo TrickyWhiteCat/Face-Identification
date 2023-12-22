@@ -19,14 +19,15 @@ from torchvision import models
 PAIR_PATH = r'data\pairs.txt'
 DATA_DIR = r"data\lfw-deepfunneled-full\lfw-deepfunneled"
 VALID_DATA_DIR = r'data\lfw-deepfunneled-split\valid'
+MODEL_PATH = r"C:\Users\nmttu\Downloads\finetune_MobileNetV3_10000_epoch_6.pth"
 
 device = 'cuda'
 far = 0.01
 
 # Model declaration and loading
 model = models.mobilenet_v3_small()
-model.classifier = ArcFaceEmbeddingHead(512, 576, last_batchnorm=True)
-model.load_state_dict(torch.load(r"C:\Users\nmttu\Downloads\finetune_MobileNetV3_epoch_76.pth")["model_state_dict"])
+model.classifier = ArcFaceEmbeddingHead(128, 576, last_batchnorm=True)
+model.load_state_dict(torch.load(MODEL_PATH)["model_state_dict"])
 model.eval().to(device)
 
 transform = transforms.Compose([transforms.ToTensor(),
