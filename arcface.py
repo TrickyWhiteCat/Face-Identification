@@ -11,7 +11,7 @@ from utils.datasets import SubsetWithTransforms
 from arcface.head import ArcFaceEmbeddingHead
 
 SAVE_DIR = r'checkpoints/arcface'
-DATA_DIR = r"/mnt/c/Users/nmttu/OneDrive - Hanoi University of Science and Technology/Projects/Face-Verification/data/lfw-deepfunneled"
+DATA_DIR = r"data/lfw-deepfunneled"
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 embedding_size = 512
@@ -31,7 +31,7 @@ model.classifier = ArcFaceEmbeddingHead(embedding_size, 576)
 augment = transforms.Compose([transforms.RandomErasing(p=0.4, scale=(0.02, 0.4)),
                               transforms.RandomHorizontalFlip(p=0.5),])
 model_transform = transforms.Compose([transforms.Resize([224, 224], antialias=True),
-                                      transforms.Normalize(mean = [0.4392, 0.3831, 0.3424], std=[0.2969, 0.2735, 0.2682])])
+                                      transforms.Normalize(mean = [0.4392, 0.3831, 0.3424], std=[0.2969, 0.2735, 0.2682])]) # data specific normalization
 train_transform = transforms.Compose([transforms.ToTensor(), model_transform])
 dataset = datasets.ImageFolder(DATA_DIR)
 train_subset, valid_subset = torch.utils.data.random_split(dataset, [0.9, 0.1])
@@ -41,7 +41,7 @@ valid_dataset = SubsetWithTransforms(valid_subset, transform=transforms.Compose(
 classify_matrix = torch.nn.Parameter(torch.normal(0, 0.01, (len(dataset.classes), embedding_size), device=device))
 
 # Knowledge distillation
-onnx_model_path = Path("models", "onnx", "r100-arcface.onnx")
+onnx_model_path = Path("models", "verification", "onnx", "ms1mv3_r50.onnx")
 converted_model = convert(onnx_model_path)
 teacher_model = converted_model.eval().to(device)
 teacher_transforms = transforms.Compose([transforms.Resize([112, 112], antialias=True),])
