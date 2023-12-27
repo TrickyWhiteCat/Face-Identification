@@ -10,9 +10,9 @@ import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
 from torchvision import datasets
-from ..knowledge_distillation import losses
+from .knowledge_distillation import losses
 
-def train(model:nn.Module, embedding_size, train_dataset: datasets.ImageFolder, learning_rate: float = 0.01, batch_size: int = 1, epochs: int = 10, margin = 0.5, scale = 64, save_file:str = None, save_epochs = False, verbose = True, device: str = 'cpu', validation_dataset: datasets.ImageFolder = None, end_learning_rate = None, classify_matrix = None, teacher_model = None, teacher_weight = 0.5, **dataloader_kwargs):
+def train(model:nn.Module, embedding_size, train_dataset: datasets.ImageFolder, learning_rate: float = 0.01, batch_size: int = 1, epochs: int = 10, margin = 0.5, scale = 64, save_file:str = None, save_epochs = False, verbose = True, device: str = 'cpu', validation_dataset: datasets.ImageFolder = None, end_learning_rate = None, classify_matrix = None, teacher_model = None, teacher_weight = 0.5, teacher_transforms = nn.Identity(), **dataloader_kwargs):
     '''
     Train the model with the given hyperparameters. When being called with `model(x)`, the model must return the embeddings of the input `x`.
     The model will be trained with the FaceNet procedure, which means that the model will be trained with triplet loss and the data loader will be created with `BalancedBatchSampler`.
@@ -70,8 +70,12 @@ def train(model:nn.Module, embedding_size, train_dataset: datasets.ImageFolder, 
             logits = nn.functional.linear(nn.functional.normalize(embeddings), nn.functional.normalize(classify_matrix))
             penalized = penalty(logits, y)
             if teacher_model is not None:
-                teacher_logits = teacher_model(x)
-                teacher_loss = losses.SoftTarget(T=2)(logits, teacher_logits)
+                teacher_embeddings = teacher_model(teacher_transforms(x))
+                if teacher_embeddings.shape != embeddings.shape:
+                    raise ValueError(f"Expected the shape of the teacher's embeddings to be {embeddings.shape}, but got {teacher_embeddings.shape}.")
+                teacher_logits = nn.functional.linear(nn.functional.normalize(teacher_embeddings), nn.functional.normalize(classify_matrix))
+                teacher_penalized = penalty(teacher_logits, y)
+                teacher_loss = losses.SoftTarget(T=2)(penalized, teacher_penalized)
             else:
                 teacher_loss = 0
                 teacher_weight = 0
@@ -84,10 +88,9 @@ def train(model:nn.Module, embedding_size, train_dataset: datasets.ImageFolder, 
                 print(f"Epoch {epoch + 1}/{epochs} -- batch {idx + 1}/{len(train_dataloader)} -- loss: {loss.item():.4f}", end  = '\r')
         scheduler.step()
         if save_file is not None:
-            if save_epochs:
-                torch.save(model.state_dict(), save_file[:-4] + f"_epoch_{epoch + 1}.pth")
-            else:
-                torch.save(model.state_dict(), save_file)
+            savepath = save_file[:-4] + f"_epoch_{epoch + 1}.pth"
+            torch.save({"model_state_dict": model.state_dict(),
+                        "classify_matrix": classify_matrix}, savepath)
         record_loss.append(record / len(train_dataloader))
         record = 0
         if validation_dataset is None:

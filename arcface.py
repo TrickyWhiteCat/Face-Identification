@@ -10,20 +10,20 @@ from pathlib import Path
 from utils.datasets import SubsetWithTransforms
 from arcface.head import ArcFaceEmbeddingHead
 
-SAVE_DIR = r'checkpoints\arcface'
-DATA_DIR = r"C:\Users\nmttu\Downloads\ms1m-retinaface-subset-1000"
+SAVE_DIR = r'checkpoints/arcface'
+DATA_DIR = r"/mnt/c/Users/nmttu/OneDrive - Hanoi University of Science and Technology/Projects/Face-Verification/data/lfw-deepfunneled"
 os.makedirs(SAVE_DIR, exist_ok=True)
 
-embedding_size = 128
+embedding_size = 512
 
-epochs = [3, 30]
+epochs = [10, 50]
 scale = 64
-batch_size = 512
+batch_size = 16
 margin = 0.5
 device = 'cuda'
 
 learning_rate = (10**-3 * batch_size, 5*10**-4 * batch_size)
-finetune_learning_rate = (5*10**-4 * batch_size, 10**-5 * batch_size)
+finetune_learning_rate = (5*10**-4 * batch_size, 10**-4 * batch_size)
 
 model = models.mobilenet_v3_small(weights = models.MobileNet_V3_Small_Weights.DEFAULT)
 model.requires_grad_(False)
@@ -43,7 +43,8 @@ classify_matrix = torch.nn.Parameter(torch.normal(0, 0.01, (len(dataset.classes)
 # Knowledge distillation
 onnx_model_path = Path("models", "onnx", "r100-arcface.onnx")
 converted_model = convert(onnx_model_path)
-teacher_model = converted_model.eval()
+teacher_model = converted_model.eval().to(device)
+teacher_transforms = transforms.Compose([transforms.Resize([112, 112], antialias=True),])
 
 r1 = train(model = model,
            train_dataset = train_dataset,
@@ -59,7 +60,8 @@ r1 = train(model = model,
            end_learning_rate=learning_rate[1],
            classify_matrix=classify_matrix,
            teacher_model=teacher_model,
-           teacher_weight=0.8,
+           teacher_weight=0.1,
+           teacher_transforms=teacher_transforms,
            save_epochs=True)
 model.requires_grad_(True)
 r2 = train(model = model,
@@ -76,7 +78,8 @@ r2 = train(model = model,
            end_learning_rate=finetune_learning_rate[1],
            classify_matrix=classify_matrix,
            teacher_model=teacher_model,
-           teacher_weight=0.8,
+           teacher_weight=0.5,
+            teacher_transforms=teacher_transforms,
            save_epochs=True)
 record = r1[0] + r2[0]
 valid_record = r1[1] + r2[1]

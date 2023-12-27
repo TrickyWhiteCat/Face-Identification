@@ -158,8 +158,16 @@ data/
 checkpoints/
 
 related-paper/
-knn/
 *.png
 *.txt
-*.ipynb
 .vscode/
+
+# Numpy data
+*.npy
+*.npz
+
+# Pretrained models
+models/
+
+# json
+*.json

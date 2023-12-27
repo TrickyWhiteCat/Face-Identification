@@ -2,13 +2,13 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 import os
-import tqdm
+from tqdm import tqdm
 
 CACHED_DATA_INFO_PATH = r'data_info.json'
 
 def mean_std(data_path, cache_path: str = None, cache: bool = True):
     # Check if data_path in cache
-    if cache_path is not None:
+    if cache_path is None:
         cache_path = CACHED_DATA_INFO_PATH
     if os.path.exists(cache_path):
         import json
@@ -16,6 +16,8 @@ def mean_std(data_path, cache_path: str = None, cache: bool = True):
             data_info = json.load(f)
         if data_path in data_info:
             return data_info[data_path]['mean'], data_info[data_path]['std']
+    else:
+        data_info = {}
 
     dataset = datasets.ImageFolder(data_path, transform = transforms.ToTensor())
 
