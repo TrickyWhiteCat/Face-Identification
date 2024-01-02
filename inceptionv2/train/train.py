@@ -30,5 +30,10 @@ train_loader_color = DataLoader(train_dataset_color, batch_size=64, shuffle=True
 valid_loader_color = DataLoader(valid_dataset_color, batch_size=64, shuffle=False, num_workers=4)
 
 # Train the model
-train_model(train_loader_color, valid_loader_color, save_file="InceptionV2_model.pth", wandb_project="InceptionV2",
-            train_transform=train_transform_color, early_stop_patience=10, epoch=300)
+resume_checkpoint = 'new'
+train_model(train_loader_color, valid_loader_color, 
+            save_file="InceptionV2.pth", 
+            wandb_project="FaceVeri_InceptionV2", 
+            train_transform = train_transform_color, 
+            early_stop_patience=20, epoch = 300, 
+            resume_checkpoint=resume_checkpoint)

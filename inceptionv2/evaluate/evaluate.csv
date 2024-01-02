@@ -1,4 +1,0 @@
-Model,Typed,Embedding Size,Input Size 1,Input Size 2,Speed Transform,Execution Time,Accuracy
-InceptionV2,Different People,128,"(250, 250)","(250, 250)",0.00134,0.03838,0.8749249549729838
-InceptionV2,Same Person,128,"(250, 250)","(250, 250)",0.001413583755493164,0.04003477096557617,0.8133333333333334
-InceptionV2,Test Model,128,"(112, 112)","(112, 112)",NaN,0.047074317932128906,1.0

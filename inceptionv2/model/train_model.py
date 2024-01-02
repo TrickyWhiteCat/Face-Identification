@@ -8,7 +8,7 @@ import numpy as np
 
 
 
-def train_model(data_loader, valid_loader, save_file="inception_model.pth", wandb_project=None, train_transform=None, early_stop_patience=3, epoch = 10):
+def train_model(data_loader, valid_loader, save_file="inception_model.pth", wandb_project=None, train_transform=None, early_stop_patience=3, epoch = 10, resume_checkpoint=None):
     embeddings_file="saved_embeddings.npy"
     
     model = InceptionV2().to(device)
@@ -18,18 +18,41 @@ def train_model(data_loader, valid_loader, save_file="inception_model.pth", wand
         
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     criterion = TripletLoss()
-
+    
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
+    
+    saved_embeddings = [] 
+    
     if wandb_project:
         wandb.login(key="b9575849263a9312a73f76d71d270c8751628e10")
-        wandb.init(project=wandb_project)
+        run = wandb.init(project=wandb_project, name='InceptionV2', resume='allow', id=resume_checkpoint)
         wandb.watch(model)
+        if run.id != 'new':
+            # Load checkpoint and retrieve necessary information
+            checkpoint_path = run.restore(name=resume_checkpoint)
+            checkpoint = torch.load(checkpoint_path)
+            model.load_state_dict(checkpoint['model'])
+            optimizer.load_state_dict(checkpoint['optimizer'])
+            start_epoch = checkpoint['epoch'] + 1
+            # Set the initial epoch for training
+            epoch_no_improve = checkpoint.get('epoch_no_improve', 0)
+            best_validation_loss = checkpoint.get('best_validation_loss', float('inf'))
 
-    best_validation_loss = float('inf')
+            print(f"Resuming training from epoch {start_epoch}, with best validation loss: {best_validation_loss}")
+        else:
+            start_epoch = 0
+            best_validation_loss = float('inf')
+            epoch_no_improve = 0
+    
+
+    else:
+        start_epoch = 0
+        best_validation_loss = float('inf')
+        epoch_no_improve = 0
+
     patience = early_stop_patience
-    epoch_no_improve = 0
-    saved_embeddings = [] 
 
-    for epoch in range(epoch):
+    for epoch in range(start_epoch, epoch):
         total_loss = 0.0
         validation_loss = 0.0
 
@@ -45,6 +68,9 @@ def train_model(data_loader, valid_loader, save_file="inception_model.pth", wand
             outputs_negative, aux_negative, embedding_negative = model(negative)
 
             loss = criterion(embedding_anchor, embedding_positive, embedding_negative)
+            saved_embeddings.append(embedding_anchor.detach().cpu().numpy())
+            saved_embeddings.append(embedding_positive.detach().cpu().numpy())
+            saved_embeddings.append(embedding_negative.detach().cpu().numpy())
 
             loss.backward()
             optimizer.step()
@@ -56,7 +82,16 @@ def train_model(data_loader, valid_loader, save_file="inception_model.pth", wand
                 pil_image = to_pil_image(img_anchor[0].cpu())  # Convert the tensor to a PIL Image
                 sample_transformed_image = train_transform(pil_image)  # Apply transform to the original PIL Image
                 wandb.log({"example_transformed_image": [wandb.Image(sample_transformed_image, caption="Transformed Image")]})
-        
+        total_loss /= len(data_loader)
+        if wandb_project:
+            torch.save({
+                'model': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'epoch': epoch,
+                'epoch_no_improve': epoch_no_improve,
+                'best_validation_loss': best_validation_loss
+            }, f'checkpoint_{epoch}.pth')
+
         # Validation loop
         model.eval()
         with torch.no_grad():
@@ -71,11 +106,12 @@ def train_model(data_loader, valid_loader, save_file="inception_model.pth", wand
                 validation_loss += val_loss.item()
 
         validation_loss /= len(valid_loader)
-        
+        scheduler.step()
         # Log loss values
         wandb.log({"Training Loss": total_loss, "Validation Loss": validation_loss})
         # Save the embeddings to a file
-        np.save(embeddings_file, np.array(saved_embeddings))
+        np.save(embeddings_file, np.vstack(saved_embeddings))
+
         
         # Save model if validation loss is the best so far
         if validation_loss < best_validation_loss:
@@ -90,4 +126,6 @@ def train_model(data_loader, valid_loader, save_file="inception_model.pth", wand
         if epoch_no_improve >= patience:
             print(f"No improvement in validation loss for {patience} consecutive epochs. Early stopping.")
             break
+        if wandb_project:
+            wandb.log({"learning_rate": optimizer.param_groups[0]['lr']})
     print(f"Model is saved to {save_file}.")
