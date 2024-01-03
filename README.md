@@ -54,42 +54,4 @@ files.upload()
 
 ```python
 ### Crop Detected Face: use face_img = image[y1:y2, x1:x2] = image[y_min:y_max, x_min:x_max]
-import os
-import cv2
-
-image_folder = '/content/real_test'
-labels_folder = '/content/yolov5/runs/detect/exp2/labels'
-output_folder = '/content/cropped_faces'
-os.makedirs(output_folder, exist_ok=True)
-
-# Lặp qua each image in image_folder
-for filename in os.listdir(image_folder):
-    if filename.endswith('.jpg') or filename.endswith('.png'):
-
-        # Read image from full path
-        path = os.path.join(image_folder, filename)
-        image = cv2.imread(path)
-
-        # Tên file txt tương ứng (cùng tên với ảnh)
-        txt_file = filename.replace('.jpg', '.txt').replace('.png', '.txt')
-
-        # Read file txt to get tọa độ bounding boxes
-        with open(os.path.join(labels_folder, txt_file), 'r') as file:
-            lines = file.readlines()
-            for i, line in enumerate(lines):
-                _, x_center, y_center, width, height = map(float, line.split()[:5])
-                # Tình toán lại tọa độ bounding box theo kích thước ảnh gốc (unnormalize)
-                x_center, width = x_center * image.shape[1], width * image.shape[1]
-                y_center, height = y_center * image.shape[0], height * image.shape[0]
-                # chuyển tọa độ bounding box sang x1, y1, x2, y2 (x1, y1 là góc trên bên trái, x2, y2 là góc dưới bên phải) or x_min, y_min, x_max, y_max
-                x_min, y_min, x_max, y_max = int(x_center - width / 2), int(y_center - height / 2), int(x_center + width / 2), int(y_center + height / 2)
-
-                # Crop và lưu ảnh khuôn mặt
-                face_img = image[y_min:y_max, x_min:x_max] # image[y1:y2, x1:x2]
-                cv2.imwrite(os.path.join(output_folder, f'{filename[:-4]}_face_{i}.jpg'), face_img)
-        print(f"Cropping successful {filename}")
-print("Cropping hoàn tất.")
-
-
-
 ```
