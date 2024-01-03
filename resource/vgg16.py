@@ -26,7 +26,7 @@ class VGG16_NET(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         self.fc14 = nn.Linear(25088, 4096)
         self.fc15 = nn.Linear(4096, 4096)
-        self.fc16 = nn.Linear(4096, 1000)
+        self.fc16 = nn.Linear(4096, 256)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
@@ -56,7 +56,6 @@ class VGG16_NET(nn.Module):
         x = self.fc16(x)
         return x
     
-
 if __name__=='__main__':
     from torchsummary import summary
     

@@ -1,46 +1,47 @@
-from resource import train,dataset_handling, vgg16
-from torch.utils.data import DataLoader,random_split
-import torch
-from torchvision import transforms
+from resource import train,vgg16
+from pytorch_metric_learning import samplers
+from torchvision import transforms,datasets
+from torch.utils.data import DataLoader, Subset
 import matplotlib.pyplot as plt
 #parameter
 my_model=vgg16.VGG16_NET()
-epochs=20
+epochs=80
+n_samples=4
 batch_size=64
-optimizer=torch.optim.Adam(my_model.parameters(),lr=0.01)
 file_name='model.pth'
 subset_data_link="E:\deep learning dataset\ms1m-retinaface-t1\imgs_subset"
-# Define transformations including normalization
+
 transform = transforms.Compose([
     transforms.Resize((256, 256)),
     transforms.ToTensor(),
 ])
-# dataset=torchvision.datasets.ImageFolder(root=subset_data_link,transform=transform)
-dataset=dataset_handling.MyDataset(root=subset_data_link,transform=transform)
 
-# Define the size of each subset (e.g., 80% train, 10% validation, 10% test)
+dataset=datasets.ImageFolder(subset_data_link,transform=transform)
+labels=dataset.targets
+train_labels=labels[:int(len(dataset)*0.8)]
+valid_labels=labels[int(len(dataset)*0.8):]
+
 dataset_size = len(dataset)
-train_size = int(0.8 * dataset_size)
-val_size = int(0.1 * dataset_size)
-test_size = dataset_size - train_size - val_size
+train_indices = list(range(int(len(dataset) * 0.8)))
+val_indices = list(range(int(len(dataset) * 0.8), len(dataset)))
 
-# Use random_split to create the subsets
-train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
+train_dataset = Subset(dataset, train_indices)
+val_dataset = Subset(dataset, val_indices)
 
 # Create DataLoaders for each subset
-train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)  # No need to shuffle for validation
-test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)  # No need to shuffle for testing
+train_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=samplers.MPerClassSampler(train_labels, m=n_samples, length_before_new_iter=len(train_dataset), batch_size=batch_size))
+val_dataloader = DataLoader(val_dataset, batch_size=batch_size,sampler=samplers.MPerClassSampler(valid_labels, m=n_samples, length_before_new_iter=len(train_dataset), batch_size=batch_size)) 
 
 train_loss,val_loss=train.train(
     num_epochs=epochs,
     model=my_model,
     train_dataloader=train_dataloader,
     val_dataloader=val_dataloader,
-    optimizer=optimizer,
+    learning_rate=0.01,
+    margin=0.5,
     patience=3,
     file_name=file_name
-)
+    )
 #plot result
 plt.plot(train_loss,val_loss)
 epochs = range(1, len(train_loss) + 1)
