@@ -15,7 +15,7 @@ WIDER FACE dataset is used for face detection. It includes 32,203 images with 39
 
         ```
 
-    - Processing Training is logged at Wandb, see: https://wandb.ai/doanngoccuong_nh/Yolov5_FaceDetection?workspace=user-doanngoccuong
+    - Processing Training is logged at Wandb, see: https://wandb.ai/doanngoccuong_nh/FaceDetection_Yolov5?workspace=user-doanngoccuong
 
 ```python
 !git clone https://github.com/ultralytics/yolov5.git
@@ -31,10 +31,10 @@ import wandb
 run = wandb.init()
 artifact = run.use_artifact('doanngoccuong_nh/Yolov5_FaceDetection/run_y9gaafqy_model:v0', type='model')
 artifact_dir = artifact.download()
-print(artifact_dir)
-
+run.finish()    # Finish logging to W&B (WandB) immediately after load model succesful. 
+ 
 # My API: c8767797aae76cbcd389ff29929ace1ac3021161
-# link weights_best.pt: /content/yolov5/artifacts/run_y9gaafqy_model:v0/best.pt
+
 ```
 
 ```python
@@ -46,12 +46,16 @@ files.upload()
 ```
 
 ```python
-# Infer real_test, optinonal:  --img 640 --save-txt --save-conf (resize, save txt, save confident)
+# Infer real_test, 
+# optional:  --img 640 --save-txt --save-conf (resize, save txt, save confident)
+# optional: --save-csv: predictions.csv (face, conf). --save-crop 
+# OR Crop Detected Face use labels file txt: face_img = image[y1:y2, x1:x2] = image[y_min:y_max, x_min:x_max]
+
 %cd /content/yolov5
 !python detect.py --source /content/real_test --weights /content/yolov5/artifacts/run_y9gaafqy_model:v0/best.pt  --save-txt --save-conf
 
+!python detect.py --source /content/real_test \
+                  --weights /content/yolov5/artifacts/run_y9gaafqy_model:v0/best.pt \
+                  --save-txt --save-conf --save-crop --save-csv
 ```
 
-```python
-### Crop Detected Face: use face_img = image[y1:y2, x1:x2] = image[y_min:y_max, x_min:x_max]
-```
