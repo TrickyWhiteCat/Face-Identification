@@ -9,14 +9,14 @@ epochs=80
 n_samples=4
 batch_size=64
 file_name='model.pth'
-subset_data_link="E:\deep learning dataset\ms1m-retinaface-t1\imgs_subset"
+data_link="E:\deep learning dataset\ms1m-retinaface-t1\imgs_subset"
 
 transform = transforms.Compose([
     transforms.Resize((256, 256)),
     transforms.ToTensor(),
 ])
 
-dataset=datasets.ImageFolder(subset_data_link,transform=transform)
+dataset=datasets.ImageFolder(data_link,transform=transform)
 labels=dataset.targets
 train_labels=labels[:int(len(dataset)*0.8)]
 valid_labels=labels[int(len(dataset)*0.8):]
@@ -51,7 +51,7 @@ plt.plot(epochs, val_loss, label='validation loss')
 plt.title('Loss Over Epochs')
 plt.xlabel('Epochs')
 plt.ylabel('Loss')
-plt.xticks(epochs)  # Set x-ticks to start from 1
+plt.xticks(epochs)  
 
 plt.legend()  # Display legend
 

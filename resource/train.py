@@ -17,20 +17,20 @@ def train(num_epochs,model,train_dataloader,val_dataloader,learning_rate,margin,
         counting =0
         for batch_idx, (input, target) in enumerate(train_dataloader):
             input,target=input.to(device),target.to(device)
-            optimizer.zero_grad()  # Zero the gradients
-            output = model(input)  # Forward pass
+            optimizer.zero_grad()  
+            output = model(input)  
             miner=mining(output,target)
-            loss = criterion(output,target,miner)  # Compute the loss
-            loss.backward()  # Backward pass
-            optimizer.step()  # Update the weights
+            loss = criterion(output,target,miner)  
+            loss.backward() 
+            optimizer.step() 
 
             if (batch_idx + 1) % (len(train_dataloader) // 5) == 0:
                 print('training process done ',counting,'is:', loss.item())
                 counting+=0.2
         train_loss_saving.append(loss)
         schedular.step()
-        # Optionally, evaluate the model on the validation set after each epoch
-        model.eval()  # Set the model to evaluation mode
+
+        model.eval() 
         with torch.no_grad():
             val_loss=0.0
             for batch_idx, (input, target) in enumerate(train_dataloader):
