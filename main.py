@@ -39,6 +39,7 @@ train_loss,val_loss=train.train(
     val_dataloader=val_dataloader,
     learning_rate=0.01,
     margin=0.5,
+    type_of_triplets='semihard',
     patience=3,
     file_name=file_name
     )

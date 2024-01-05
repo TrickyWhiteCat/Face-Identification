@@ -1,13 +1,13 @@
 import torch
 from pytorch_metric_learning import losses,miners
-def train(num_epochs,model,train_dataloader,val_dataloader,learning_rate,margin,patience,file_name):
+def train(num_epochs,model,train_dataloader,val_dataloader,learning_rate,margin,type_of_triplets,patience,file_name):
     train_loss_saving=[]
     val_loss_saving=[]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     no_improvement_counter = 0
     best_val_loss = float('inf')
     criterion = losses.TripletMarginLoss(margin=margin)
-    mining=miners.TripletMarginMiner(margin=margin)
+    mining=miners.TripletMarginMiner(margin=margin,type_of_triplets=type_of_triplets)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     gamma = 0.95
     schedular=torch.optim.lr_scheduler.ExponentialLR(optimizer,gamma)
