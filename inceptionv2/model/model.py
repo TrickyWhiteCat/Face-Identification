@@ -301,7 +301,8 @@ class InceptionV2(nn.Module):
         # Flatten and pass through the fully connected layer
         embedding = torch.flatten(embedding, 1)
         embedding = self.embedding_fc(embedding)
-
+        
+        embedding = (embedding - embedding.min()) / (embedding.max() - embedding.min())
         x = self.fc(embedding) 
 
         return x, aux, embedding.squeeze()  
