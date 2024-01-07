@@ -1,7 +1,7 @@
 import logging
 import math
 
-from arcface.loss import ArcFace
+from loss import ArcFace
 logging.basicConfig(level=logging.INFO)
 
 from typing import Callable
@@ -10,7 +10,7 @@ import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
 from torchvision import datasets
-from .knowledge_distillation import losses
+from knowledge_distillation import losses
 
 def train(model:nn.Module, embedding_size, train_dataset: datasets.ImageFolder, learning_rate: float = 0.01, batch_size: int = 1, epochs: int = 10, margin = 0.5, scale = 64, save_file:str = None, save_epochs = False, verbose = True, device: str = 'cpu', validation_dataset: datasets.ImageFolder = None, end_learning_rate = None, classify_matrix = None, teacher_model = None, teacher_weight = 0.5, teacher_transforms = nn.Identity(), **dataloader_kwargs):
     '''
