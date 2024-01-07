@@ -1,4 +1,4 @@
-from arcface import train
+from trainer import train
 import torch
 from torchvision import datasets, models
 from torchvision.transforms import v2 as transforms
