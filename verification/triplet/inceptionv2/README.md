@@ -9,8 +9,8 @@ To perform face identification using the pre-trained InceptionV2 model checkpoin
 
 2. **Download the Checkpoint: (Skip this)**
    
-Download the InceptionV2 model checkpoint (InceptionV2.pth) from this [link](https://husteduvn-my.sharepoint.com/:u:/g/personal/tuan_nm214940_sis_hust_edu_vn/EQO3kBG3TRtJssQwbI3YL6MBYnt9uJKRVyq_25LQBvK7iA?e=66tA7I) and place it in the verification/triplet/inceptionv2/result/ directory.
-However, I already have it on Github, so you can skip this step.
+   Download the InceptionV2 model checkpoint (InceptionV2.pth) from this [link](https://husteduvn-my.sharepoint.com/:u:/g/personal/tuan_nm214940_sis_hust_edu_vn/EQO3kBG3TRtJssQwbI3YL6MBYnt9uJKRVyq_25LQBvK7iA?e=66tA7I) and place it in the verification/triplet/inceptionv2/result/ directory.
+   However, I already have it on Github, so you can skip this step.
 
 4. **Load the Checkpoint:**
 ```
