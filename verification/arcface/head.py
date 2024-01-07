@@ -15,4 +15,4 @@ class ArcFaceEmbeddingHead(nn.Module):
         x = self.dropout(x)
         x = self.fc(x)
         x = self.features(x)
-        return x
+        return nn.functional.normalize(x, dim=-1)
