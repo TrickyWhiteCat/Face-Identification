@@ -50,23 +50,24 @@ To train the InceptionV2 model for face verification, follow these steps:
    Execute the training script train.py using the following command:
    ```bash
    python train.py
+   ```
 
    You can customize the training parameters within the script, such as batch size, the number of workers, and others.
 
-4. **Monitor Training Progress:**
+5. **Monitor Training Progress:**
 
    During training, you can monitor the training progress and metrics on Weights & Biases (of course your WanDB :), replace in train.py code).
    The trained model checkpoint will be saved as "InceptionV2.pth" in the current directory.
 
-5. **Resume Training (Optional):**
+6. **Resume Training (Optional):**
 
    If you want to resume training from a specific checkpoint, set the resume_checkpoint variable to the desired checkpoint name.
 
-6. **Early Stopping (Optional):**
+7. **Early Stopping (Optional):**
 
    Enable early stopping by setting the early_stop_patience parameter to a positive value. Training will stop if the validation loss does not improve for the specified number of epochs.
 
-7. **Customize Training (Optional):**
+8. **Customize Training (Optional):**
 
    Feel free to customize the training script further based on your specific requirements.
 
