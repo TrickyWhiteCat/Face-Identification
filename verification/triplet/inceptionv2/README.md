@@ -12,7 +12,7 @@ Download the InceptionV2 model checkpoint (InceptionV2.pth) from this [link](htt
 However, I already have it on Github, so you can skip this step.
 
 3. **Load the Checkpoint:**
-
+```
 import torch
 from verification.triplet.inceptionv2.model import InceptionV2
 
@@ -24,5 +24,5 @@ checkpoint_path = 'verification/triplet/inceptionv2/result/InceptionV2.pth'
 
 # Load the model checkpoint
 loaded_model = load_model_checkpoint(model, checkpoint_path)
-
+```
 **Ensure to replace your_num_classes with the actual number of classes.**
