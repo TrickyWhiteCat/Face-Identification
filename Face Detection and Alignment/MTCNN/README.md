@@ -7,7 +7,8 @@ Tensorflow 1.4.0
 Python 2.6
 Cuda 8.0
 
-How to train
+How to train:
+
 Step 1.Download Wider Face Training part only from Official Website , unzip to replace WIDER_train and put it into prepare_data folder.
 
 Step 2.Download landmark training data from here,unzip and put them into prepare_data folder.
