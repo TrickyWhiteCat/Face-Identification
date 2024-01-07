@@ -1,7 +1,8 @@
 
 Prerequistes:
 You should first download WIDER Face(for face detection) and LFW data set(for face alignmet)
-Requirement:
+
+Requirements:
 Tensorflow 1.4.0
 Python 2.6
 Cuda 8.0
